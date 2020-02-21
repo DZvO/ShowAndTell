@@ -28,13 +28,17 @@ import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.util.Size;
 import android.util.TypedValue;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.widget.Toast;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.tensorflow.lite.examples.detection.customview.OverlayView;
 import org.tensorflow.lite.examples.detection.customview.OverlayView.DrawCallback;
@@ -86,11 +90,17 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private BorderedText borderedText;
 
   private TextToSpeech tts;
+  private GestureDetector det;
+  private GestureTap tap_detector;
 
   @Override
   public void onPreviewSizeChosen(final Size size, final int rotation) {
+    tap_detector = new GestureTap();
+    det = new GestureDetector(getApplicationContext(), tap_detector);
     tts = new TextToSpeech(getApplicationContext(), null);
     tts.setLanguage(Locale.US);
+    Set<Voice> voices = tts.getVoices();
+
     final float textSizePx =
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, getResources().getDisplayMetrics());
@@ -155,6 +165,12 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   }
 
   @Override
+  public boolean onTouchEvent(MotionEvent event) {
+    det.onTouchEvent(event);
+    return super.onTouchEvent(event);
+  }
+
+  @Override
   protected void processImage() {
     ++timestamp;
     final long currTimestamp = timestamp;
@@ -183,6 +199,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         new Runnable() {
           @Override
           public void run() {
+            Set<Voice> voices = tts.getVoices();
             LOGGER.i("Running detection on image " + currTimestamp);
             final long startTime = SystemClock.uptimeMillis();
             final List<Classifier.Recognition> results = detector.recognizeImage(croppedBitmap);
@@ -208,8 +225,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
             for (final Classifier.Recognition result : results) {
               final RectF location = result.getLocation();
               if (location != null && result.getConfidence() >= minimumConfidence) {
-                LOGGER.i("Found " + result.getTitle());
-                tts.speak(result.getTitle(), TextToSpeech.QUEUE_FLUSH, null);
+
                 canvas.drawRect(location, paint);
 
                 cropToFrameTransform.mapRect(location);
@@ -217,6 +233,16 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                 result.setLocation(location);
                 mappedRecognitions.add(result);
               }
+            }
+            if(tap_detector.wasTapped) {
+              for (final Classifier.Recognition result : results) {
+                final RectF location = result.getLocation();
+                if (location != null && result.getConfidence() >= minimumConfidence) {
+                  LOGGER.i("Found " + result.getTitle());
+                  tts.speak(result.getTitle(), TextToSpeech.QUEUE_ADD, null);
+                }
+              }
+              tap_detector.wasTapped = false;
             }
 
             tracker.trackResults(mappedRecognitions, currTimestamp);
