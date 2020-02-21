@@ -6,7 +6,7 @@ This is a proof-of-concept app that uses tensorflow to detect and categorize thi
 This has many advantages for blind people, just imagine getting a postcard or a leaflet with an image and some text. There are currently solutions that involve actual humans to help in situations like these ([Be My Eyes](https://play.google.com/store/apps/details?id=com.bemyeyes.bemyeyes&hl=de)) but with technology that enables cars to drive themselves this should be a easy problem.
 
 ### Roadmap
-- [ ] Make TTS act once button/screen is pressed  
+- [X] Make TTS act once button/screen is pressed
 - [ ] Make TTS try to read text ([Text Recognition API](https://developers.google.com/vision/android/text-overview))  
 - [ ] Publish on Appstore  
 
